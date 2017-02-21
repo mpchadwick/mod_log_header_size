@@ -18,13 +18,31 @@ module AP_MODULE_DECLARE_DATA log_header_size_module;
 
 typedef struct log_header_size_config_t {
     apr_off_t bytes_in_header;
+    apr_off_t bytes_out_header;
 } log_header_size_config_t;
+
+static int gather_header_size(void *b_, const char *key, const char *value)
+{
+    int *b = b_;
+    (*b) += strlen(key);
+    (*b) += strlen(value);
+
+    return 1;
+}
 
 static const char *log_bytes_in_header(request_rec *r, char *a)
 {
     log_header_size_config_t *cf = ap_get_module_config(r->connection->conn_config, &log_header_size_module);
 
     return apr_off_t_toa(r->pool, cf->bytes_in_header);
+}
+
+static const char *log_bytes_out_header(request_rec *r, char *a)
+{
+    log_header_size_config_t *cf = ap_get_module_config(r->connection->conn_config, &log_header_size_module);
+    apr_table_do(gather_header_size, &cf->bytes_out_header, r->headers_out, NULL);
+
+    return apr_off_t_toa(r->pool, cf->bytes_out_header);
 }
 
 static int log_header_size_pre_connection(conn_rec *c, void *csd)
@@ -44,18 +62,10 @@ static int log_header_size_pre_config(apr_pool_t *p, apr_pool_t *plog, apr_pool_
 
     if (log_pfn_register) {
         log_pfn_register(p, "^IH", log_bytes_in_header, 0);
+        log_pfn_register(p, "^OH", log_bytes_out_header, 0);
     }
 
     return OK;
-}
-
-static int gather_header_size(void *b_, const char *key, const char *value)
-{
-    int *b = b_;
-    (*b) += strlen(key);
-    (*b) += strlen(value);
-
-    return 1;
 }
 
 static int log_header_size_post_read_request(request_rec *r)
@@ -69,7 +79,7 @@ static int log_header_size_post_read_request(request_rec *r)
 static int log_header_size_log_transaction(request_rec *r)
 {
     log_header_size_config_t *cf = ap_get_module_config(r->connection->conn_config, &log_header_size_module);
-    cf->bytes_in_header = 0;
+    cf->bytes_in_header = cf->bytes_out_header = 0;
 
     return OK;
 }

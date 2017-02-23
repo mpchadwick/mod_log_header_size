@@ -71,7 +71,9 @@ static int log_header_size_pre_config(apr_pool_t *p, apr_pool_t *plog, apr_pool_
 static int log_header_size_post_read_request(request_rec *r)
 {
     log_header_size_config_t *cf = ap_get_module_config(r->connection->conn_config, &log_header_size_module);
-    apr_table_do(gather_header_size, &cf->bytes_in_header, r->headers_in, NULL);
+    if (cf->bytes_in_header == 0) {
+        apr_table_do(gather_header_size, &cf->bytes_in_header, r->headers_in, NULL);
+    }
 
     return OK;
 }

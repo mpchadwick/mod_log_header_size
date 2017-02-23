@@ -92,7 +92,7 @@ static void register_hooks(apr_pool_t *p)
     ap_hook_log_transaction(log_header_size_log_transaction, NULL, NULL, APR_HOOK_MIDDLE);
 }
 
-AP_DECLARE_MODULE(log_header_size) =
+module AP_MODULE_DECLARE_DATA log_header_size_module =
 {
     STANDARD20_MODULE_STUFF,
     NULL,
